@@ -1,0 +1,91 @@
+{
+  "id": "palindrome-normalization",
+  "title": "Palindrome normalization",
+  "summary": "Normalize user-entered text before deciding whether it reads the same in both directions.",
+  "difficulty": "introductory",
+  "category": "Text processing",
+  "instructions": "Implement `is_normalized_palindrome(value)`. The input is a string. Ignore every character for which `str.isalnum()` is false and compare the remaining characters case-insensitively with `str.casefold()`. Return a boolean. Empty normalized text counts as a palindrome. Raise `TypeError` when `value` is not a string. Do not use network or process APIs.",
+  "function_name": "is_normalized_palindrome",
+  "signature": "def is_normalized_palindrome(value: str) -> bool",
+  "starter_code": "def is_normalized_palindrome(value: str) -> bool:\n    \"\"\"Return whether value is a palindrome after normalization.\"\"\"\n    raise NotImplementedError\n",
+  "time_limit_seconds": 2,
+  "memory_limit_mb": 128,
+  "examples": [
+    {
+      "input": "\"A man, a plan, a canal: Panama!\"",
+      "output": "True",
+      "explanation": "Punctuation, spaces, and case are ignored."
+    },
+    {
+      "input": "\"release candidate\"",
+      "output": "False"
+    }
+  ],
+  "tests": [
+    {
+      "id": "pal-empty",
+      "name": "Empty input",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": [""]},
+      "expected": true
+    },
+    {
+      "id": "pal-phrase",
+      "name": "Mixed punctuation and case",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": ["A man, a plan, a canal: Panama!"]},
+      "expected": true
+    },
+    {
+      "id": "pal-negative",
+      "name": "Ordinary non-palindrome",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": ["release candidate"]},
+      "expected": false
+    },
+    {
+      "id": "pal-symbols",
+      "name": "Only ignored characters",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": [" -- !! "]},
+      "expected": true
+    },
+    {
+      "id": "pal-unicode",
+      "name": "Unicode case folding",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": ["Été"]},
+      "expected": true
+    },
+    {
+      "id": "pal-digits",
+      "name": "Digits participate in comparison",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": ["12-3-21"]},
+      "expected": true
+    },
+    {
+      "id": "pal-almost",
+      "name": "Near palindrome remains false",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": ["0P"]},
+      "expected": false
+    },
+    {
+      "id": "pal-type",
+      "name": "Reject non-string input",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": [12321]},
+      "expected_exception": "TypeError"
+    }
+  ]
+}
+

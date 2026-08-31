@@ -1,0 +1,115 @@
+{
+  "id": "deduplicate-records",
+  "title": "Deduplicate records",
+  "summary": "Remove duplicate application records by key while preserving their first-seen order.",
+  "difficulty": "intermediate",
+  "category": "Data processing",
+  "instructions": "Implement `deduplicate_records(records, key=\"id\")`. `records` must be a list of dictionaries. Return a new list containing the first record for each distinct key value, in original order. Do not mutate the list or its dictionaries. Key values may be any hashable value. Raise `TypeError` when `records` is not a list, an item is not a dictionary, or a key value is unhashable. Raise `ValueError` when a record is missing the requested key. Do not use network or process APIs.",
+  "function_name": "deduplicate_records",
+  "signature": "def deduplicate_records(records: list[dict], key: str = \"id\") -> list[dict]",
+  "starter_code": "def deduplicate_records(\n    records: list[dict], key: str = \"id\"\n) -> list[dict]:\n    \"\"\"Return first-seen records for each distinct key value.\"\"\"\n    raise NotImplementedError\n",
+  "time_limit_seconds": 2,
+  "memory_limit_mb": 128,
+  "examples": [
+    {
+      "input": "[{\"id\": 2, \"name\": \"Ada\"}, {\"id\": 2, \"name\": \"Later\"}, {\"id\": 7, \"name\": \"Lin\"}]",
+      "output": "[{\"id\": 2, \"name\": \"Ada\"}, {\"id\": 7, \"name\": \"Lin\"}]",
+      "explanation": "The first record for id 2 wins."
+    }
+  ],
+  "tests": [
+    {
+      "id": "dedupe-basic",
+      "name": "First record wins",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {
+        "args": [[
+          {"id": 2, "name": "Ada"},
+          {"id": 2, "name": "Later"},
+          {"id": 7, "name": "Lin"}
+        ]]
+      },
+      "expected": [
+        {"id": 2, "name": "Ada"},
+        {"id": 7, "name": "Lin"}
+      ]
+    },
+    {
+      "id": "dedupe-empty",
+      "name": "Empty input",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": [[]]},
+      "expected": []
+    },
+    {
+      "id": "dedupe-custom",
+      "name": "Custom key",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {
+        "args": [[
+          {"email": "a@example.com", "role": "admin"},
+          {"email": "b@example.com", "role": "user"},
+          {"email": "a@example.com", "role": "user"}
+        ]],
+        "kwargs": {"key": "email"}
+      },
+      "expected": [
+        {"email": "a@example.com", "role": "admin"},
+        {"email": "b@example.com", "role": "user"}
+      ]
+    },
+    {
+      "id": "dedupe-missing",
+      "name": "Missing requested key",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": [[{"id": 1}, {"name": "missing"}]]},
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "dedupe-falsey",
+      "name": "Falsey keys remain distinct",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {
+        "args": [[
+          {"id": 0, "value": "zero"},
+          {"id": "", "value": "empty"},
+          {"id": 0, "value": "later"}
+        ]]
+      },
+      "expected": [
+        {"id": 0, "value": "zero"},
+        {"id": "", "value": "empty"}
+      ]
+    },
+    {
+      "id": "dedupe-non-list",
+      "name": "Reject non-list collection",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": [{"id": 1}]},
+      "expected_exception": "TypeError"
+    },
+    {
+      "id": "dedupe-non-record",
+      "name": "Reject non-dictionary item",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": [[{"id": 1}, "not-a-record"]]},
+      "expected_exception": "TypeError"
+    },
+    {
+      "id": "dedupe-unhashable",
+      "name": "Reject unhashable key value",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": [[{"id": [1, 2]}]]},
+      "expected_exception": "TypeError"
+    }
+  ]
+}
+

@@ -1,0 +1,32 @@
+{
+  "categories": [
+    {
+      "id": "boundary-condition",
+      "description": "Mishandles empty, falsey, minimum, maximum, or off-by-one cases."
+    },
+    {
+      "id": "normalization",
+      "description": "Omits or misapplies canonicalization required by the task contract."
+    },
+    {
+      "id": "ordering-semantics",
+      "description": "Returns the right members with the wrong first-seen, stable, or replacement behavior."
+    },
+    {
+      "id": "pagination-control",
+      "description": "Stops traversal early or mishandles cursor progression."
+    },
+    {
+      "id": "termination-safety",
+      "description": "Ignores a bounded-execution rule such as a page or attempt limit."
+    },
+    {
+      "id": "retry-policy",
+      "description": "Uses the wrong attempt budget, delay progression, or cap behavior."
+    },
+    {
+      "id": "schema-validation",
+      "description": "Accepts malformed nested data or incorrect field types."
+    }
+  ]
+}

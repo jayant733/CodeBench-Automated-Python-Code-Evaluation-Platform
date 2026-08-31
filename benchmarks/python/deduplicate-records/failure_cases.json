@@ -1,0 +1,19 @@
+{
+  "task_id": "deduplicate-records",
+  "cases": [
+    {
+      "id": "last-record-wins",
+      "category": "ordering-semantics",
+      "description": "Overwrites the first record when a duplicate key appears later.",
+      "source": "incorrect_solutions/last-record-wins.py",
+      "expected_failed_tests": ["dedupe-basic", "dedupe-custom", "dedupe-missing", "dedupe-falsey", "dedupe-non-list", "dedupe-non-record"]
+    },
+    {
+      "id": "drop-falsey-keys",
+      "category": "boundary-condition",
+      "description": "Uses truthiness instead of treating zero and empty-string keys as distinct values.",
+      "source": "incorrect_solutions/drop-falsey-keys.py",
+      "expected_failed_tests": ["dedupe-missing", "dedupe-falsey"]
+    }
+  ]
+}

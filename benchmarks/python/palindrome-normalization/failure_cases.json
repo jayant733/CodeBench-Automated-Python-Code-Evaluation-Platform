@@ -1,0 +1,19 @@
+{
+  "task_id": "palindrome-normalization",
+  "cases": [
+    {
+      "id": "raw-comparison",
+      "category": "normalization",
+      "description": "Compares the original string without removing ignored characters or folding case.",
+      "source": "incorrect_solutions/raw-comparison.py",
+      "expected_failed_tests": ["pal-phrase", "pal-symbols", "pal-unicode"]
+    },
+    {
+      "id": "reject-empty-normalization",
+      "category": "boundary-condition",
+      "description": "Treats an empty normalized value as false instead of a palindrome.",
+      "source": "incorrect_solutions/reject-empty-normalization.py",
+      "expected_failed_tests": ["pal-empty", "pal-symbols"]
+    }
+  ]
+}
