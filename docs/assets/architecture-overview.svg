@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title description">
+  <title id="title">AI Code Evaluation Suite architecture</title>
+  <desc id="description">A Next.js dashboard sends a task and source code to a trusted FastAPI evaluator. The evaluator loads versioned task definitions, sends a restricted job to a disposable network-disabled Python runner, and returns an evidence-rich evaluation report.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0d0c"/>
+      <stop offset="1" stop-color="#111713"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171c19"/>
+      <stop offset="1" stop-color="#111512"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#000000" flood-opacity=".32"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M1 1l10 5-10 5z" fill="#b8ff3d"/>
+    </marker>
+    <style>
+      .eyebrow { font: 700 18px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 3px; fill: #b8ff3d; }
+      .headline { font: 700 48px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f3f7f3; }
+      .subhead { font: 400 21px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #9da79f; }
+      .step { font: 700 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 2px; fill: #b8ff3d; }
+      .card-title { font: 700 27px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f3f7f3; }
+      .card-copy { font: 400 17px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #aeb7b0; }
+      .chip { font: 600 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #d9e0da; }
+      .flow { font: 600 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #b8ff3d; }
+      .detail { font: 500 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #c7cec8; }
+      .muted { font: 400 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #7f8a82; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="800" rx="28" fill="url(#background)"/>
+  <circle cx="1450" cy="36" r="230" fill="#b8ff3d" opacity=".025"/>
+  <circle cx="110" cy="785" r="260" fill="#b8ff3d" opacity=".02"/>
+
+  <text x="70" y="68" class="eyebrow">SYSTEM ARCHITECTURE</text>
+  <text x="70" y="124" class="headline">Evidence-first code evaluation</text>
+  <text x="70" y="161" class="subhead">Untrusted submissions cross one controlled boundary; only captured evidence comes back.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="242" width="360" height="252" rx="20" fill="url(#panel)" stroke="#2b332d"/>
+    <rect x="70" y="242" width="6" height="252" rx="3" fill="#b8ff3d"/>
+    <text x="104" y="286" class="step">01 · INTERACT</text>
+    <text x="104" y="330" class="card-title">Next.js dashboard</text>
+    <text x="104" y="366" class="card-copy">Choose a benchmark task, edit a</text>
+    <text x="104" y="391" class="card-copy">submission, and inspect the report.</text>
+    <rect x="104" y="427" width="94" height="34" rx="17" fill="#202722" stroke="#353f38"/>
+    <text x="127" y="449" class="chip">Next.js</text>
+    <rect x="210" y="427" width="108" height="34" rx="17" fill="#202722" stroke="#353f38"/>
+    <text x="230" y="449" class="chip">TypeScript</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="610" y="220" width="380" height="294" rx="20" fill="url(#panel)" stroke="#2b332d"/>
+    <rect x="610" y="220" width="6" height="294" rx="3" fill="#b8ff3d"/>
+    <text x="644" y="264" class="step">02 · ORCHESTRATE</text>
+    <text x="644" y="308" class="card-title">FastAPI evaluator</text>
+    <text x="644" y="344" class="card-copy">Validates input, selects the task,</text>
+    <text x="644" y="369" class="card-copy">coordinates execution, and scores.</text>
+    <line x1="644" y1="399" x2="956" y2="399" stroke="#303832"/>
+    <circle cx="654" cy="429" r="4" fill="#b8ff3d"/>
+    <text x="671" y="435" class="detail">Deterministic scoring</text>
+    <circle cx="654" cy="459" r="4" fill="#b8ff3d"/>
+    <text x="671" y="465" class="detail">Visible + hidden test accounting</text>
+    <circle cx="654" cy="489" r="4" fill="#b8ff3d"/>
+    <text x="671" y="495" class="detail">Structured feedback contract</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="610" y="588" width="380" height="134" rx="20" fill="url(#panel)" stroke="#2b332d"/>
+    <text x="644" y="628" class="step">VERSIONED INPUT</text>
+    <text x="644" y="666" class="card-title">Task catalog</text>
+    <text x="644" y="698" class="card-copy">Prompts, fixtures, and scoring metadata</text>
+  </g>
+
+  <rect x="1120" y="198" width="410" height="524" rx="26" fill="#101411" stroke="#68716a" stroke-width="2" stroke-dasharray="9 9"/>
+  <text x="1150" y="235" class="step">ISOLATION BOUNDARY</text>
+  <text x="1150" y="263" class="muted">Disposable container · untrusted code</text>
+
+  <g filter="url(#shadow)">
+    <rect x="1150" y="294" width="350" height="272" rx="20" fill="url(#panel)" stroke="#b8ff3d" stroke-opacity=".55"/>
+    <text x="1184" y="338" class="step">03 · EXECUTE</text>
+    <text x="1184" y="382" class="card-title">Python runner</text>
+    <text x="1184" y="417" class="card-copy">Runs visible and hidden tests inside</text>
+    <text x="1184" y="442" class="card-copy">a fresh restricted environment.</text>
+    <rect x="1184" y="478" width="128" height="34" rx="17" fill="#202722" stroke="#353f38"/>
+    <text x="1206" y="500" class="chip">No network</text>
+    <rect x="1322" y="478" width="140" height="34" rx="17" fill="#202722" stroke="#353f38"/>
+    <text x="1343" y="500" class="chip">Non-root user</text>
+    <text x="1184" y="542" class="muted">CPU · memory · process · output limits</text>
+  </g>
+
+  <g>
+    <rect x="1150" y="594" width="350" height="92" rx="16" fill="#171c19" stroke="#2b332d"/>
+    <text x="1180" y="627" class="step">04 · RETURN EVIDENCE</text>
+    <text x="1180" y="659" class="detail">Score · summaries · feedback · runtime</text>
+  </g>
+
+  <path d="M430 353H590" fill="none" stroke="#b8ff3d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="467" y="325" width="112" height="25" rx="12" fill="#101411"/>
+  <text x="478" y="343" class="flow">task + source</text>
+
+  <path d="M800 588V536" fill="none" stroke="#b8ff3d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="813" y="548" width="121" height="25" rx="12" fill="#101411"/>
+  <text x="824" y="566" class="flow">task definition</text>
+
+  <path d="M990 352H1100" fill="none" stroke="#b8ff3d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="996" y="324" width="103" height="25" rx="12" fill="#101411"/>
+  <text x="1008" y="342" class="flow">restricted job</text>
+
+  <path d="M1150 623H1050Q1022 623 1022 595V477Q1022 449 994 449" fill="none" stroke="#b8ff3d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="1006" y="531" width="105" height="25" rx="12" fill="#101411"/>
+  <text x="1018" y="549" class="flow">captured JSON</text>
+
+  <path d="M610 469H548Q518 469 518 499V552Q518 582 488 582H250Q220 582 220 552V514" fill="none" stroke="#b8ff3d" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="330" y="555" width="148" height="25" rx="12" fill="#101411"/>
+  <text x="341" y="573" class="flow">report + public evidence</text>
+
+  <text x="70" y="759" class="muted">Trust model: the API is the control plane; submitted code never executes in the dashboard or API process.</text>
+</svg>
