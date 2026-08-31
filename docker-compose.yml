@@ -1,0 +1,59 @@
+name: ai-code-evaluation-suite
+
+services:
+  runner-image:
+    image: ai-code-evaluator-runner:local
+    build:
+      context: .
+      dockerfile: docker/runner/Dockerfile
+    command: ["python", "--version"]
+    restart: "no"
+
+  evaluator:
+    build:
+      context: .
+      dockerfile: services/evaluator/Dockerfile
+    environment:
+      EVALUATOR_JOB_ROOT: /runner-jobs
+      EVALUATOR_JOB_VOLUME: ai-code-evaluator-jobs
+      EVALUATOR_RUNNER_IMAGE: ai-code-evaluator-runner:local
+      EVALUATOR_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-jobs:/runner-jobs
+    depends_on:
+      runner-image:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        NEXT_PUBLIC_EVALUATOR_URL: http://localhost:8000
+    environment:
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      evaluator:
+        condition: service_healthy
+
+volumes:
+  runner-jobs:
+    name: ai-code-evaluator-jobs
+
