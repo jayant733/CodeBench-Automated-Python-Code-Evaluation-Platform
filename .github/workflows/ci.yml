@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master", "codex/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator:
+    name: Evaluator checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/evaluator/pyproject.toml
+      - name: Install evaluator
+        run: python -m pip install -e "services/evaluator[dev]"
+      - name: Lint and format check
+        run: |
+          ruff check services/evaluator
+          ruff format --check services/evaluator
+      - name: Type check
+        run: mypy services/evaluator/src
+      - name: Build isolated runner
+        run: docker build -t ai-code-evaluator-runner:local -f docker/runner/Dockerfile .
+      - name: Test
+        run: pytest services/evaluator/tests --cov=ai_code_evaluator --cov-report=term-missing
+
+  dashboard:
+    name: Dashboard checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - name: Verify generated API contracts
+        run: |
+          python -m pip install -e services/evaluator
+          npm run contracts:check
+      - run: npm run dashboard:lint
+      - run: npm run dashboard:typecheck
+      - run: npm run dashboard:test
+      - run: npm run dashboard:build
