@@ -1,0 +1,627 @@
+{
+  "components": {
+    "schemas": {
+      "EvaluationReport": {
+        "properties": {
+          "evaluation_id": {
+            "title": "Evaluation Id",
+            "type": "string"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackItem"
+            },
+            "title": "Feedback",
+            "type": "array"
+          },
+          "hidden_test_summary": {
+            "$ref": "#/components/schemas/HiddenTestSummary"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "runtime_ms": {
+            "minimum": 0.0,
+            "title": "Runtime Ms",
+            "type": "integer"
+          },
+          "score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "integer"
+          },
+          "score_breakdown": {
+            "$ref": "#/components/schemas/ScoreBreakdown"
+          },
+          "status": {
+            "const": "completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "stderr": {
+            "title": "Stderr",
+            "type": "string"
+          },
+          "stdout": {
+            "title": "Stdout",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "visible_tests": {
+            "items": {
+              "$ref": "#/components/schemas/TestResult"
+            },
+            "title": "Visible Tests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "task_id",
+          "status",
+          "score",
+          "score_breakdown",
+          "passed",
+          "summary",
+          "visible_tests",
+          "hidden_test_summary",
+          "runtime_ms",
+          "stdout",
+          "stderr",
+          "feedback"
+        ],
+        "title": "EvaluationReport",
+        "type": "object"
+      },
+      "EvaluationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "source_code": {
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Source Code",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "source_code"
+        ],
+        "title": "EvaluationRequest",
+        "type": "object"
+      },
+      "Example": {
+        "properties": {
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "input": {
+            "title": "Input",
+            "type": "string"
+          },
+          "output": {
+            "title": "Output",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "output"
+        ],
+        "title": "Example",
+        "type": "object"
+      },
+      "FeedbackItem": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "severity"
+        ],
+        "title": "FeedbackItem",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HiddenTestSummary": {
+        "properties": {
+          "failed": {
+            "minimum": 0.0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "passed": {
+            "minimum": 0.0,
+            "title": "Passed",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "failed",
+          "total"
+        ],
+        "title": "HiddenTestSummary",
+        "type": "object"
+      },
+      "PublicTask": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "difficulty": {
+            "enum": [
+              "introductory",
+              "intermediate",
+              "advanced"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/Example"
+            },
+            "title": "Examples",
+            "type": "array"
+          },
+          "function_name": {
+            "title": "Function Name",
+            "type": "string"
+          },
+          "hidden_test_count": {
+            "title": "Hidden Test Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "instructions": {
+            "title": "Instructions",
+            "type": "string"
+          },
+          "memory_limit_mb": {
+            "title": "Memory Limit Mb",
+            "type": "integer"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "starter_code": {
+            "title": "Starter Code",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "time_limit_seconds": {
+            "title": "Time Limit Seconds",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "visible_test_count": {
+            "title": "Visible Test Count",
+            "type": "integer"
+          },
+          "visible_tests": {
+            "items": {
+              "$ref": "#/components/schemas/PublicTestCase"
+            },
+            "title": "Visible Tests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "difficulty",
+          "category",
+          "visible_test_count",
+          "hidden_test_count",
+          "instructions",
+          "function_name",
+          "signature",
+          "starter_code",
+          "time_limit_seconds",
+          "memory_limit_mb",
+          "examples",
+          "visible_tests"
+        ],
+        "title": "PublicTask",
+        "type": "object"
+      },
+      "PublicTestCase": {
+        "properties": {
+          "expected": {
+            "title": "Expected"
+          },
+          "expected_exception": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Exception"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": true,
+            "title": "Input",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "input"
+        ],
+        "title": "PublicTestCase",
+        "type": "object"
+      },
+      "ScoreBreakdown": {
+        "properties": {
+          "correctness": {
+            "maximum": 80.0,
+            "minimum": 0.0,
+            "title": "Correctness",
+            "type": "integer"
+          },
+          "execution_signals": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Execution Signals",
+            "type": "integer"
+          },
+          "instruction_adherence": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Instruction Adherence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "correctness",
+          "instruction_adherence",
+          "execution_signals"
+        ],
+        "title": "ScoreBreakdown",
+        "type": "object"
+      },
+      "TaskSummary": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "difficulty": {
+            "enum": [
+              "introductory",
+              "intermediate",
+              "advanced"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "hidden_test_count": {
+            "title": "Hidden Test Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "visible_test_count": {
+            "title": "Visible Test Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "summary",
+          "difficulty",
+          "category",
+          "visible_test_count",
+          "hidden_test_count"
+        ],
+        "title": "TaskSummary",
+        "type": "object"
+      },
+      "TestResult": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "runtime_ms": {
+            "minimum": 0.0,
+            "title": "Runtime Ms",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "runtime_ms"
+        ],
+        "title": "TestResult",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Typed task discovery and Docker-isolated Python evaluation.",
+    "title": "AI Code Evaluation API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/evaluations": {
+      "post": {
+        "operationId": "evaluate_submission_api_evaluations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Submission"
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "operationId": "list_tasks_api_tasks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskSummary"
+                  },
+                  "title": "Response List Tasks Api Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tasks"
+      }
+    },
+    "/api/tasks/{task_id}": {
+      "get": {
+        "operationId": "get_task_api_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTask"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Task"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    }
+  }
+}
