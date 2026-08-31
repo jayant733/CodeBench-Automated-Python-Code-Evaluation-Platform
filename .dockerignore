@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+**/.next
+**/node_modules
+.coverage
+htmlcov
+.runner-jobs
+.env
+.env.*
+!.env.example
+*.log
