@@ -1,0 +1,19 @@
+{
+  "task_id": "retry-with-backoff",
+  "cases": [
+    {
+      "id": "linear-delay",
+      "category": "retry-policy",
+      "description": "Uses a constant delay and therefore misses exponential progression and cap behavior.",
+      "source": "incorrect_solutions/linear-delay.py",
+      "expected_failed_tests": ["retry-recovers", "retry-exhausted", "retry-cap"]
+    },
+    {
+      "id": "extra-attempt",
+      "category": "retry-policy",
+      "description": "Treats max_attempts as retries, allowing one operation call beyond the budget.",
+      "source": "incorrect_solutions/extra-attempt.py",
+      "expected_failed_tests": ["retry-exhausted", "retry-single"]
+    }
+  ]
+}

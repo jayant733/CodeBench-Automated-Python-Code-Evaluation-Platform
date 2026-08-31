@@ -1,0 +1,151 @@
+{
+  "id": "retry-with-backoff",
+  "title": "Retry with exponential backoff",
+  "summary": "Wrap an unreliable operation with bounded retries and injectable sleeping.",
+  "difficulty": "advanced",
+  "category": "Resilience",
+  "instructions": "Implement `retry(operation, *, max_attempts=3, base_delay=0.1, max_delay=2.0, sleep=time.sleep)`. Call `operation` until it returns or the attempt budget is exhausted. Catch `Exception`, but not `BaseException`. Before each retry, call `sleep(min(base_delay * 2 ** retry_index, max_delay))`, where the first retry index is zero. Re-raise the final operation exception unchanged. Validate before calling the operation: `max_attempts` must be an integer of at least 1, and both delays must be non-negative numbers; booleans are invalid. Raise `ValueError` for invalid settings. Do not use network or process APIs.",
+  "function_name": "retry",
+  "signature": "def retry(operation, *, max_attempts=3, base_delay=0.1, max_delay=2.0, sleep=time.sleep)",
+  "starter_code": "import time\nfrom collections.abc import Callable\nfrom typing import Any\n\n\ndef retry(\n    operation: Callable[[], Any],\n    *,\n    max_attempts: int = 3,\n    base_delay: float = 0.1,\n    max_delay: float = 2.0,\n    sleep: Callable[[float], None] = time.sleep,\n) -> Any:\n    \"\"\"Run operation with bounded exponential-backoff retries.\"\"\"\n    raise NotImplementedError\n",
+  "time_limit_seconds": 2,
+  "memory_limit_mb": 128,
+  "examples": [
+    {
+      "input": "An operation fails twice, then succeeds; max_attempts=3, base_delay=0.5",
+      "output": "The return value after delays [0.5, 1.0]",
+      "explanation": "The injected sleep callable makes retry timing testable without real waiting."
+    }
+  ],
+  "tests": [
+    {
+      "id": "retry-immediate",
+      "name": "Immediate success",
+      "visibility": "visible",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 0,
+        "max_attempts": 3,
+        "base_delay": 0.5,
+        "max_delay": 5.0,
+        "result": "ok",
+        "expected_calls": 1,
+        "expected_delays": []
+      },
+      "expected": "ok"
+    },
+    {
+      "id": "retry-recovers",
+      "name": "Recovers after two failures",
+      "visibility": "visible",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 2,
+        "max_attempts": 3,
+        "base_delay": 0.5,
+        "max_delay": 5.0,
+        "result": {"status": "ready"},
+        "expected_calls": 3,
+        "expected_delays": [0.5, 1.0]
+      },
+      "expected": {"status": "ready"}
+    },
+    {
+      "id": "retry-exhausted",
+      "name": "Re-raises final failure",
+      "visibility": "visible",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 9,
+        "max_attempts": 3,
+        "base_delay": 0.25,
+        "max_delay": 2.0,
+        "result": null,
+        "expected_calls": 3,
+        "expected_delays": [0.25, 0.5]
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "retry-cap",
+      "name": "Caps exponential delay",
+      "visibility": "visible",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 3,
+        "max_attempts": 4,
+        "base_delay": 1.0,
+        "max_delay": 1.5,
+        "result": 42,
+        "expected_calls": 4,
+        "expected_delays": [1.0, 1.5, 1.5]
+      },
+      "expected": 42
+    },
+    {
+      "id": "retry-single",
+      "name": "Single attempt never sleeps",
+      "visibility": "hidden",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 2,
+        "max_attempts": 1,
+        "base_delay": 1.0,
+        "max_delay": 2.0,
+        "result": null,
+        "expected_calls": 1,
+        "expected_delays": []
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "retry-zero-delay",
+      "name": "Allows zero delays",
+      "visibility": "hidden",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 1,
+        "max_attempts": 2,
+        "base_delay": 0.0,
+        "max_delay": 0.0,
+        "result": "done",
+        "expected_calls": 2,
+        "expected_delays": [0.0]
+      },
+      "expected": "done"
+    },
+    {
+      "id": "retry-invalid-attempts",
+      "name": "Rejects zero attempts",
+      "visibility": "hidden",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 0,
+        "max_attempts": 0,
+        "base_delay": 0.1,
+        "max_delay": 1.0,
+        "result": "unused",
+        "expected_calls": 0,
+        "expected_delays": []
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "retry-invalid-delay",
+      "name": "Rejects negative delay",
+      "visibility": "hidden",
+      "mode": "retry",
+      "input": {
+        "failures_before_success": 0,
+        "max_attempts": 2,
+        "base_delay": -0.1,
+        "max_delay": 1.0,
+        "result": "unused",
+        "expected_calls": 0,
+        "expected_delays": []
+      },
+      "expected_exception": "ValueError"
+    }
+  ]
+}
+

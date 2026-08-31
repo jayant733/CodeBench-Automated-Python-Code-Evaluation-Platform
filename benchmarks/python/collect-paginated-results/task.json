@@ -1,0 +1,146 @@
+{
+  "id": "collect-paginated-results",
+  "title": "Collect paginated API results",
+  "summary": "Traverse cursor-based API pages safely and combine their records in response order.",
+  "difficulty": "advanced",
+  "category": "API data",
+  "instructions": "Implement `collect_paginated_results(fetch_page, *, start_cursor=None, max_pages=100)`. `fetch_page(cursor)` returns a dictionary with `items` (a list) and `next_cursor` (a string or `None`). Fetch from `start_cursor`, append each page's items in order, and stop when `next_cursor` is `None`. Detect a repeated non-null cursor and raise `RuntimeError` before fetching it again. Raise `RuntimeError` if another page would exceed `max_pages`. Validate `max_pages` as an integer of at least 1 (booleans are invalid), `start_cursor` as a string or `None`, and every response shape; raise `ValueError` for invalid inputs or responses. Do not mutate returned page data. Do not use network or process APIs.",
+  "function_name": "collect_paginated_results",
+  "signature": "def collect_paginated_results(fetch_page, *, start_cursor=None, max_pages=100) -> list",
+  "starter_code": "from collections.abc import Callable\nfrom typing import Any\n\n\ndef collect_paginated_results(\n    fetch_page: Callable[[str | None], dict[str, Any]],\n    *,\n    start_cursor: str | None = None,\n    max_pages: int = 100,\n) -> list[Any]:\n    \"\"\"Collect items from a cursor-paginated API.\"\"\"\n    raise NotImplementedError\n",
+  "time_limit_seconds": 2,
+  "memory_limit_mb": 128,
+  "examples": [
+    {
+      "input": "start -> {items: [1, 2], next_cursor: \"p2\"}; p2 -> {items: [3], next_cursor: null}",
+      "output": "[1, 2, 3]"
+    }
+  ],
+  "tests": [
+    {
+      "id": "pages-single",
+      "name": "Single page",
+      "visibility": "visible",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [{"id": 1}], "next_cursor": null}
+        },
+        "start_cursor": null,
+        "max_pages": 100,
+        "expected_cursors": [null]
+      },
+      "expected": [{"id": 1}]
+    },
+    {
+      "id": "pages-multiple",
+      "name": "Combines multiple pages",
+      "visibility": "visible",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [1, 2], "next_cursor": "p2"},
+          "p2": {"items": [3], "next_cursor": "p3"},
+          "p3": {"items": [4, 5], "next_cursor": null}
+        },
+        "start_cursor": null,
+        "max_pages": 5,
+        "expected_cursors": [null, "p2", "p3"]
+      },
+      "expected": [1, 2, 3, 4, 5]
+    },
+    {
+      "id": "pages-custom-start",
+      "name": "Uses supplied starting cursor",
+      "visibility": "visible",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "resume": {"items": ["a"], "next_cursor": null}
+        },
+        "start_cursor": "resume",
+        "max_pages": 2,
+        "expected_cursors": ["resume"]
+      },
+      "expected": ["a"]
+    },
+    {
+      "id": "pages-cycle",
+      "name": "Detects cursor cycle",
+      "visibility": "visible",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [1], "next_cursor": "again"},
+          "again": {"items": [2], "next_cursor": "again"}
+        },
+        "start_cursor": null,
+        "max_pages": 10,
+        "expected_cursors": [null, "again"]
+      },
+      "expected_exception": "RuntimeError"
+    },
+    {
+      "id": "pages-empty",
+      "name": "Accepts empty terminal page",
+      "visibility": "hidden",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [], "next_cursor": null}
+        },
+        "start_cursor": null,
+        "max_pages": 1,
+        "expected_cursors": [null]
+      },
+      "expected": []
+    },
+    {
+      "id": "pages-limit",
+      "name": "Enforces page limit",
+      "visibility": "hidden",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [1], "next_cursor": "p2"},
+          "p2": {"items": [2], "next_cursor": "p3"}
+        },
+        "start_cursor": null,
+        "max_pages": 1,
+        "expected_cursors": [null]
+      },
+      "expected_exception": "RuntimeError"
+    },
+    {
+      "id": "pages-invalid-items",
+      "name": "Rejects malformed items",
+      "visibility": "hidden",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": "not-a-list", "next_cursor": null}
+        },
+        "start_cursor": null,
+        "max_pages": 2,
+        "expected_cursors": [null]
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "pages-invalid-cursor",
+      "name": "Rejects malformed next cursor",
+      "visibility": "hidden",
+      "mode": "pagination",
+      "input": {
+        "pages": {
+          "__start__": {"items": [], "next_cursor": 4}
+        },
+        "start_cursor": null,
+        "max_pages": 2,
+        "expected_cursors": [null]
+      },
+      "expected_exception": "ValueError"
+    }
+  ]
+}
+

@@ -1,0 +1,19 @@
+{
+  "task_id": "transform-api-users",
+  "cases": [
+    {
+      "id": "keep-duplicate-roles",
+      "category": "normalization",
+      "description": "Validates the payload but fails to deduplicate roles in first-seen order.",
+      "source": "incorrect_solutions/keep-duplicate-roles.py",
+      "expected_failed_tests": ["users-basic"]
+    },
+    {
+      "id": "permissive-field-types",
+      "category": "schema-validation",
+      "description": "Accepts boolean identifiers, truthy non-boolean active flags, and non-string roles.",
+      "source": "incorrect_solutions/permissive-field-types.py",
+      "expected_failed_tests": ["users-bool-id", "users-invalid-active", "users-invalid-roles"]
+    }
+  ]
+}

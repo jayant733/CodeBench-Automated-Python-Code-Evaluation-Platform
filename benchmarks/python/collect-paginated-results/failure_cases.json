@@ -1,0 +1,19 @@
+{
+  "task_id": "collect-paginated-results",
+  "cases": [
+    {
+      "id": "first-page-only",
+      "category": "pagination-control",
+      "description": "Returns the first page and never follows the next cursor.",
+      "source": "incorrect_solutions/first-page-only.py",
+      "expected_failed_tests": ["pages-multiple", "pages-cycle", "pages-limit", "pages-invalid-items", "pages-invalid-cursor"]
+    },
+    {
+      "id": "ignore-page-limit",
+      "category": "termination-safety",
+      "description": "Traverses cursors correctly but ignores the caller's maximum page budget.",
+      "source": "incorrect_solutions/ignore-page-limit.py",
+      "expected_failed_tests": ["pages-limit"]
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "id": "transform-api-users",
+  "title": "Transform nested API users",
+  "summary": "Validate a nested API payload and convert active user records into a stable application shape.",
+  "difficulty": "intermediate",
+  "category": "API data",
+  "instructions": "Implement `transform_api_users(payload)`. The payload must contain `data.users`, a list of user dictionaries. Every user needs an integer `id` (booleans are not valid integers) and `profile.display_name`, a non-empty string after trimming. `active` defaults to true and must be a boolean. `roles` defaults to an empty list and must contain only strings. Return only active users as `{\"id\": id, \"name\": trimmed_name, \"roles\": roles}`. Deduplicate roles while preserving order. Return new dictionaries and lists. Raise `ValueError` for any malformed payload. Do not use network or process APIs.",
+  "function_name": "transform_api_users",
+  "signature": "def transform_api_users(payload: dict) -> list[dict]",
+  "starter_code": "def transform_api_users(payload: dict) -> list[dict]:\n    \"\"\"Validate and flatten active users from an API payload.\"\"\"\n    raise NotImplementedError\n",
+  "time_limit_seconds": 2,
+  "memory_limit_mb": 128,
+  "examples": [
+    {
+      "input": "{\"data\": {\"users\": [{\"id\": 7, \"active\": true, \"profile\": {\"display_name\": \" Ada \"}, \"roles\": [\"admin\", \"admin\"]}]}}",
+      "output": "[{\"id\": 7, \"name\": \"Ada\", \"roles\": [\"admin\"]}]"
+    }
+  ],
+  "tests": [
+    {
+      "id": "users-basic",
+      "name": "Flatten and filter users",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {
+                "id": 7,
+                "active": true,
+                "profile": {"display_name": " Ada "},
+                "roles": ["admin", "admin", "reviewer"]
+              },
+              {
+                "id": 8,
+                "active": false,
+                "profile": {"display_name": "Grace"},
+                "roles": ["user"]
+              }
+            ]
+          }
+        }]
+      },
+      "expected": [
+        {"id": 7, "name": "Ada", "roles": ["admin", "reviewer"]}
+      ]
+    },
+    {
+      "id": "users-defaults",
+      "name": "Apply optional-field defaults",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {"id": 1, "profile": {"display_name": "Lin"}}
+            ]
+          }
+        }]
+      },
+      "expected": [
+        {"id": 1, "name": "Lin", "roles": []}
+      ]
+    },
+    {
+      "id": "users-missing-data",
+      "name": "Reject missing envelope",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {"args": [{}]},
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "users-empty-name",
+      "name": "Reject blank display name",
+      "visibility": "visible",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {"id": 1, "profile": {"display_name": "   "}}
+            ]
+          }
+        }]
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "users-empty",
+      "name": "Accept empty user list",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {"args": [{"data": {"users": []}}]},
+      "expected": []
+    },
+    {
+      "id": "users-bool-id",
+      "name": "Reject boolean identifier",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {"id": true, "profile": {"display_name": "Ada"}}
+            ]
+          }
+        }]
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "users-invalid-active",
+      "name": "Reject non-boolean active flag",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {"id": 3, "active": 1, "profile": {"display_name": "Ada"}}
+            ]
+          }
+        }]
+      },
+      "expected_exception": "ValueError"
+    },
+    {
+      "id": "users-invalid-roles",
+      "name": "Reject malformed roles",
+      "visibility": "hidden",
+      "mode": "direct",
+      "input": {
+        "args": [{
+          "data": {
+            "users": [
+              {"id": 3, "profile": {"display_name": "Ada"}, "roles": ["admin", 2]}
+            ]
+          }
+        }]
+      },
+      "expected_exception": "ValueError"
+    }
+  ]
+}
+
