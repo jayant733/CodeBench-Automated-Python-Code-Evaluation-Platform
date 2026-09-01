@@ -1,0 +1,37 @@
+[
+  {
+    "task_id": "collect-paginated-results",
+    "score": 0,
+    "passed": false,
+    "runtime_ms": 0,
+    "error": ""
+  },
+  {
+    "task_id": "deduplicate-records",
+    "score": 0,
+    "passed": false,
+    "runtime_ms": 0,
+    "error": ""
+  },
+  {
+    "task_id": "palindrome-normalization",
+    "score": 0,
+    "passed": false,
+    "runtime_ms": 0,
+    "error": ""
+  },
+  {
+    "task_id": "retry-with-backoff",
+    "score": 0,
+    "passed": false,
+    "runtime_ms": 0,
+    "error": ""
+  },
+  {
+    "task_id": "transform-api-users",
+    "score": 0,
+    "passed": false,
+    "runtime_ms": 0,
+    "error": ""
+  }
+]
