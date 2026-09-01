@@ -88,6 +88,7 @@ class EvaluationRequest(BaseModel):
 
 
 class TestResult(BaseModel):
+    __test__ = False
     id: str
     name: str
     status: Literal["passed", "failed", "error"]

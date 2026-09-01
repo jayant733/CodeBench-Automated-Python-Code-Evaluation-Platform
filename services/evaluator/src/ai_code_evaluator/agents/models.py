@@ -113,6 +113,8 @@ class TestFailureDetail(BaseModel):
 
 
 class TestReport(BaseModel):
+    __test__ = False
+    
     model_config = ConfigDict(extra="forbid")
 
     tests_run: int
