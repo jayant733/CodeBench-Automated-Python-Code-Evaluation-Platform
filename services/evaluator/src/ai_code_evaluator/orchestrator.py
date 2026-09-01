@@ -11,10 +11,13 @@ from ai_code_evaluator.agents.coder import CodingAgent
 from ai_code_evaluator.agents.reviewer import ReviewAgent
 from ai_code_evaluator.agents.test_agent import TestAgent
 from ai_code_evaluator.agents.security_agent import SecurityAgent
+from ai_code_evaluator.logging import bind_contextvars, clear_contextvars, get_logger
 from ai_code_evaluator.providers import ModelProvider
 from ai_code_evaluator.tools.registry import ToolRegistry, ToolContext, ToolPermission
 from ai_code_evaluator.models import TaskDefinition, EvaluationReport
 from ai_code_evaluator.service import EvaluationService
+
+logger = get_logger(__name__)
 
 
 class OrchestratorConfig(BaseModel):
@@ -56,8 +59,35 @@ class AgentOrchestrator:
         task: TaskDefinition,
         session_id: str,
         workspace_path: Any,  # Path
+        run_id: str | None = None,
     ) -> EvaluationReport:
         """Run the end-to-end agentic workflow."""
+        import uuid
+        run_id = run_id or str(uuid.uuid4())
+        bind_contextvars(task_id=task.id, session_id=session_id, run_id=run_id, agent="orchestrator")
+        logger.info(f"Starting agent session {session_id} for task {task.id}")
+        
+        # Initialize Observability (P1)
+        db_session_obj = None
+        mlflow_run = None
+        try:
+            from ai_code_evaluator.db.database import async_session_maker, engine, Base
+            from ai_code_evaluator.db.crud import create_agent_session
+            from ai_code_evaluator.mlops.mlflow_tracker import MLflowTracker
+            
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+
+            async with async_session_maker() as db:
+                db_session_obj = await create_agent_session(db, session_id, task.id)
+            
+            # Setup MLflow
+            tracker = MLflowTracker()
+            mlflow_run = tracker.start_run(task.id, session_id)
+            tracker.log_param("require_planner", self.config.require_planner)
+            tracker.log_param("require_reviewer", self.config.require_reviewer)
+        except Exception as e:
+            logger.warning(f"Failed to initialize observability, continuing without persistence: {e}")
         
         # 1. Setup Context
         tool_context = ToolContext(
@@ -130,12 +160,33 @@ class AgentOrchestrator:
             context["test_summary"] = test_response.structured_output.model_dump_json(indent=2)
             
             # D. Code Review
+            review_verdict = None
             if self.config.require_reviewer:
                 context["source_code"] = source_code
                 review_response = await self.reviewer.invoke(context)
                 context["review"] = review_response.structured_output
+                review_verdict = "PASS" if getattr(context["review"], "approved", False) else "FAIL"
+                
+            # Log Iteration (P1)
+            try:
+                if db_session_obj:
+                    from ai_code_evaluator.db.database import async_session_maker
+                    from ai_code_evaluator.db.crud import add_iteration
+                    async with async_session_maker() as db:
+                        await add_iteration(
+                            db,
+                            session_id=session_id,
+                            iteration_number=iteration + 1,
+                            coding_duration_ms=report.runtime_ms,
+                            review_verdict=review_verdict,
+                            security_verdict=None,
+                            tool_calls=[] # Can extract from coder_response if needed
+                        )
+            except Exception as e:
+                logger.warning(f"Failed to log iteration {iteration + 1}: {e}")
         
         if not report:
+            clear_contextvars()
             raise RuntimeError("Coding loop failed to produce an evaluation report.")
 
         # 4. Security Check (Post-evaluation or during)
@@ -156,4 +207,30 @@ class AgentOrchestrator:
                 report.passed = False
                 report.summary = f"Security Check Failed: {sec_verdict.risk_level} risk."
 
+        # Finalize Observability (P1)
+        try:
+            if db_session_obj:
+                from ai_code_evaluator.db.database import async_session_maker
+                from ai_code_evaluator.db.crud import update_agent_session
+                async with async_session_maker() as db:
+                    await update_agent_session(
+                        db,
+                        session_id=session_id,
+                        status="completed",
+                        final_score=report.score,
+                        iterations_used=iteration + 1,
+                        total_duration_ms=report.runtime_ms
+                    )
+                    
+            if mlflow_run:
+                from ai_code_evaluator.mlops.mlflow_tracker import MLflowTracker
+                tracker = MLflowTracker()
+                tracker.log_metric("final_score", report.score)
+                tracker.log_metric("iterations_used", iteration + 1)
+                tracker.log_metric("total_duration_ms", report.runtime_ms)
+                tracker.end_run()
+        except Exception as e:
+            logger.warning(f"Failed to finalize observability: {e}")
+
+        clear_contextvars()
         return report
