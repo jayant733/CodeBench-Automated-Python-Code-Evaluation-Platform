@@ -28,6 +28,7 @@ from .models import (
 )
 from .service import EvaluationService
 from .tasks import TaskLoader
+from .server import EvaluatorMCPServer
 
 
 def create_app(
@@ -38,11 +39,16 @@ def create_app(
     loader = task_loader or TaskLoader()
     service = evaluation_service or EvaluationService()
 
+    mcp_server = EvaluatorMCPServer(loader, service)
+    mcp_asgi_app = mcp_server.server.streamable_http_app()
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.task_loader = loader
         app.state.evaluation_service = service
-        yield
+        # Trigger the MCPServer lifespan so it initializes its background task group
+        async with mcp_asgi_app.router.lifespan_context(app):
+            yield
 
     app = FastAPI(
         title="AI Code Evaluation API",
@@ -64,6 +70,9 @@ def create_app(
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
     )
+
+    # Mount the ASGI app
+    app.mount("/", mcp_asgi_app)
 
     @app.exception_handler(EvaluatorError)
     async def evaluator_error_handler(_request: Request, exc: EvaluatorError) -> JSONResponse:
