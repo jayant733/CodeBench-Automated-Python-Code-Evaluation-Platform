@@ -38,6 +38,7 @@ class AgentResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     content: str
+    tool_calls: list[ToolCallRequest] | None = None
     structured_output: Any | None = None
     usage: TokenUsage
     model: str

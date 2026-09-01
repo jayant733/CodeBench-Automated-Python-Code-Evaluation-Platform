@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from ai_code_evaluator.providers import ModelProvider
-from .models import AgentConfig, AgentMessage, AgentResponse
+from .models import AgentConfig, AgentMessage, AgentResponse, ToolCallRequest
 
 
 class AgentMemory:
@@ -93,6 +93,7 @@ class BaseAgent(ABC):
             )
             return AgentResponse(
                 content=result.content,
+                tool_calls=[ToolCallRequest(**tc) for tc in result.tool_calls] if result.tool_calls else None,
                 usage=result.usage,
                 model=result.model,
                 duration_ms=int((time.perf_counter() - start_time) * 1000),

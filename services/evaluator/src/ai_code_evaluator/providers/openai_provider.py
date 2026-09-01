@@ -33,9 +33,24 @@ class OpenAIProvider(ModelProvider):
 
         choice = response.choices[0]
         usage = response.usage
+        
+        parsed_tool_calls = None
+        if choice.message.tool_calls:
+            parsed_tool_calls = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                }
+                for tc in choice.message.tool_calls
+            ]
 
         return GenerateResult(
             content=choice.message.content or "",
+            tool_calls=parsed_tool_calls,
             usage=TokenUsage(
                 prompt_tokens=usage.prompt_tokens if usage else 0,
                 completion_tokens=usage.completion_tokens if usage else 0,

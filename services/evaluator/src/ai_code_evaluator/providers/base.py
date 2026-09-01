@@ -25,6 +25,7 @@ class GenerateResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     content: str
+    tool_calls: list[dict[str, Any]] | None = None
     usage: TokenUsage
     model: str
     finish_reason: str
