@@ -1,14 +1,10 @@
-# AI Code Evaluation Suite
+# CodeBench — AI-Assisted Code Evaluation Platform
 
-AI Code Evaluation Suite is an open-source developer tool for testing,
-explaining, and improving human- and AI-generated Python. Choose a task, submit
-source code, and receive a deterministic report backed by visible and hidden
-tests. Submitted code runs in a disposable, network-disabled Docker container;
-it is never imported by the FastAPI server.
+CodeBench is an open-source multi-agent evaluation platform for testing, explaining, and iteratively improving code generation. Choose a task, run an evaluation loop with the `PlannerAgent`, `CodingAgent`, and `TestAgent`, and receive a deterministic report backed by visible and hidden tests.
 
-This project exists to demonstrate engineering judgment around evaluation
-systems: clear contracts, realistic edge cases, trustworthy reporting, failure
-handling, isolation, and honest limitations.
+Submitted code is run inside a disposable, network-disabled Docker container and is manipulated dynamically by tools using the Model Context Protocol (MCP).
+
+This project demonstrates advanced AI systems engineering around multi-agent orchestration, MCP integration, MLOps, test isolation, and evaluation benchmarking.
 
 ## Why this matters
 
@@ -74,20 +70,15 @@ omitting transport metadata for readability:
 Hidden-test implementation details stay private; the report exposes only the
 summary needed to diagnose behavior without leaking the benchmark.
 
-## What the MVP includes
+## Features
 
-- Five Python tasks, including API transformation, retries, and pagination.
-- Ten curated incorrect submissions with explicit failure classifications and
-  mutation-style benchmark validation.
-- Typed FastAPI task and evaluation endpoints.
-- Visible test details and hidden-test totals without hidden source exposure.
-- Docker isolation with no network, non-root execution, resource limits,
-  read-only mounts, timeouts, and cleanup.
-- A responsive Next.js workspace with a prefilled submission and structured
-  report UI.
-- Evaluator unit/API/integration tests, dashboard component tests, linting,
-  strict type checks, production builds, and GitHub Actions CI.
-- Architecture, scoring, security, roadmap, and contribution documentation.
+- **Multi-Agent Orchestration**: Specialized agents for planning, coding, reviewing, and testing.
+- **Model Context Protocol (MCP)**: Implements MCP v2 HTTP transport for local tooling.
+- **MLOps Integration**: Experiment tracking with MLflow and session persistence with PostgreSQL/SQLite.
+- **Robust Evaluation Tasks**: Tasks with public criteria and hidden test validations.
+- **Security-First Execution**: Docker-isolated execution, security scanner agent, resource limits.
+- **Benchmarking Tools**: Scripts for deterministic baseline metrics and AI performance metrics.
+- **Next.js Dashboard**: Rich visual timeline for agent runs, session metrics, and tool calls.
 
 ## Architecture
 
