@@ -128,4 +128,9 @@ def test_health_reports_runner_state(task_loader: TaskLoader) -> None:
     with client(task_loader, ApiRunner(unavailable=True)) as api:
         response = api.get("/health")
 
-    assert response.json() == {"status": "ok", "runner": "unavailable"}
+        assert response.json() == {
+            "status": "degraded",
+            "runner": "unavailable",
+            "postgres": "available",
+            "mlflow": "unavailable",
+        }

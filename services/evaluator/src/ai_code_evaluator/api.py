@@ -40,7 +40,7 @@ def create_app(
     service = evaluation_service or EvaluationService()
 
     mcp_server = EvaluatorMCPServer(loader, service)
-    mcp_asgi_app = mcp_server.server.streamable_http_app()
+    mcp_asgi_app = mcp_server.server.streamable_http_app(streamable_http_path="/")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -72,7 +72,7 @@ def create_app(
     )
 
     # Mount the ASGI app
-    app.mount("/", mcp_asgi_app)
+    app.mount("/mcp", mcp_asgi_app)
 
     @app.exception_handler(EvaluatorError)
     async def evaluator_error_handler(_request: Request, exc: EvaluatorError) -> JSONResponse:
@@ -85,12 +85,38 @@ def create_app(
         return JSONResponse(status_code=status_code, content=payload.model_dump())
 
     @app.get("/health")
-    def health(request: Request) -> dict[str, Any]:
+    async def health(request: Request) -> dict[str, Any]:
         runner = request.app.state.evaluation_service.runner
-        return {
+        status = {
             "status": "ok",
             "runner": "available" if runner.available() else "unavailable",
+            "postgres": "unavailable",
+            "mlflow": "unavailable",
         }
+        
+        # Check DB
+        try:
+            from sqlalchemy import text
+            from .db.database import async_session_maker
+            async with async_session_maker() as session:
+                await session.execute(text("SELECT 1"))
+            status["postgres"] = "available"
+        except Exception:
+            status["status"] = "degraded"
+            
+        # Check MLflow (simple HTTP GET to the tracking URI)
+        try:
+            import httpx
+            import os
+            mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{mlflow_uri}/health", timeout=2.0)
+                if resp.status_code == 200:
+                    status["mlflow"] = "available"
+        except Exception:
+            status["status"] = "degraded"
+            
+        return status
 
     @app.get("/api/tasks", response_model=list[TaskSummary])
     def list_tasks(request: Request) -> list[TaskSummary]:
@@ -104,6 +130,85 @@ def create_app(
     def evaluate_submission(submission: EvaluationRequest, request: Request) -> EvaluationReport:
         task = request.app.state.task_loader.get(submission.task_id)
         return request.app.state.evaluation_service.evaluate(task, submission.source_code)
+
+    # --- P1 Extensions ---
+
+    @app.get("/api/agent/sessions")
+    async def get_agent_sessions() -> list[dict[str, Any]]:
+        from sqlalchemy import select
+        from .db.database import async_session_maker
+        from .db.models import AgentSession
+        
+        async with async_session_maker() as session:
+            result = await session.execute(select(AgentSession).order_by(AgentSession.created_at.desc()).limit(100))
+            sessions = result.scalars().all()
+            return [
+                {
+                    "id": s.id,
+                    "task_id": s.task_id,
+                    "status": s.status,
+                    "final_score": s.final_score,
+                    "iterations_used": s.iterations_used,
+                    "total_duration_ms": s.total_duration_ms,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                }
+                for s in sessions
+            ]
+
+    @app.get("/api/agent/sessions/{session_id}")
+    async def get_agent_session_details(session_id: str) -> dict[str, Any]:
+        from fastapi import HTTPException
+        from .db.database import async_session_maker
+        from .db.crud import get_agent_session
+        
+        async with async_session_maker() as session:
+            db_session = await get_agent_session(session, session_id)
+            if not db_session:
+                raise HTTPException(status_code=404, detail="Session not found")
+                
+            return {
+                "id": db_session.id,
+                "task_id": db_session.task_id,
+                "status": db_session.status,
+                "final_score": db_session.final_score,
+                "iterations_used": db_session.iterations_used,
+                "total_duration_ms": db_session.total_duration_ms,
+                "iterations": [
+                    {
+                        "iteration_number": i.iteration_number,
+                        "coding_duration_ms": i.coding_duration_ms,
+                        "review_verdict": i.review_verdict,
+                        "security_verdict": i.security_verdict,
+                        "tool_calls": [
+                            {
+                                "id": tc.id,
+                                "tool_name": tc.tool_name,
+                                "arguments": tc.arguments,
+                                "result": tc.result,
+                                "duration_ms": tc.duration_ms,
+                            } for tc in i.tool_calls
+                        ]
+                    } for i in db_session.iterations
+                ]
+            }
+
+    @app.get("/api/experiments")
+    async def list_experiments() -> list[dict[str, Any]]:
+        from sqlalchemy import select
+        from .db.database import async_session_maker
+        from .db.models import Experiment
+        
+        async with async_session_maker() as session:
+            result = await session.execute(select(Experiment).order_by(Experiment.created_at.desc()).limit(50))
+            experiments = result.scalars().all()
+            return [
+                {
+                    "id": e.id,
+                    "name": e.name,
+                    "created_at": e.created_at.isoformat() if e.created_at else None,
+                }
+                for e in experiments
+            ]
 
     return app
 
