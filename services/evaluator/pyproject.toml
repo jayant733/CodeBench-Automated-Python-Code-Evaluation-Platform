@@ -19,6 +19,7 @@ dev = [
   "mypy>=1.14,<2",
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
+  "pytest-asyncio>=0.23,<1",
   "ruff>=0.9,<1",
 ]
 
@@ -33,6 +34,7 @@ addopts = "-ra --strict-markers"
 testpaths = ["tests"]
 markers = [
   "docker: requires a running Docker daemon and the evaluator runner image",
+  "asyncio: mark test as asyncio",
 ]
 
 [tool.ruff]
