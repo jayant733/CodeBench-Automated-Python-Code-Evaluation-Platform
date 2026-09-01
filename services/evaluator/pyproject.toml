@@ -13,6 +13,12 @@ dependencies = [
   "uvicorn[standard]>=0.34,<1",
   "openai>=1.14,<2",
   "mcp>=1.0.0",
+  "sqlalchemy>=2.0,<3",
+  "alembic>=1.13,<2",
+  "asyncpg>=0.29,<1",
+  "psycopg2-binary>=2.9,<3",
+  "mlflow>=2.10,<3",
+  "structlog>=24.1,<25",
 ]
 
 [project.optional-dependencies]

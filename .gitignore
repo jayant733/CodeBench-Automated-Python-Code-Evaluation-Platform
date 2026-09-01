@@ -10,6 +10,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+*.db
 
 # Node / Next.js
 node_modules/
@@ -32,4 +33,4 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
-
+.claude/
