@@ -18,6 +18,8 @@ services:
       EVALUATOR_JOB_VOLUME: ai-code-evaluator-jobs
       EVALUATOR_RUNNER_IMAGE: ai-code-evaluator-runner:local
       EVALUATOR_CORS_ORIGINS: http://localhost:3000
+      EVALUATOR_DB_URL: postgresql+asyncpg://evaluator:password@postgres:5432/evaluator
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "8000:8000"
     volumes:
@@ -26,6 +28,8 @@ services:
     depends_on:
       runner-image:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -61,7 +65,7 @@ services:
       - "5000:5000"
     command: >
       mlflow server
-      --backend-store-uri postgresql://evaluator:password@postgres:5432/evaluator
+      --backend-store-uri sqlite:////mlflow/mlflow.db
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
     depends_on:

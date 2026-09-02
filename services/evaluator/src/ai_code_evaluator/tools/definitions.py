@@ -8,7 +8,7 @@ from ai_code_evaluator.tasks import TaskLoader
 from ai_code_evaluator.service import EvaluationService
 from ai_code_evaluator.models import EvaluationReport
 
-from .registry import ToolContext, ToolPermission, ToolSchema
+from .registry import ToolContext, ToolPermission, ToolRegistry, ToolSchema
 
 # 1. list_files
 list_files_schema = ToolSchema(
@@ -227,3 +227,21 @@ def run_tests_handler(context: ToolContext, task_id: str, source_code: str) -> d
     report: EvaluationReport = eval_service.evaluate(task_def, source_code)
     
     return report.model_dump(mode="json")
+
+
+DEFAULT_TOOLS: list[tuple[ToolSchema, Any]] = [
+    (list_files_schema, list_files_handler),
+    (read_file_schema, read_file_handler),
+    (write_file_schema, write_file_handler),
+    (inspect_ast_schema, inspect_ast_handler),
+    (retrieve_task_schema, retrieve_task_handler),
+    (run_tests_schema, run_tests_handler),
+]
+
+
+def build_default_registry() -> ToolRegistry:
+    """Registry containing every tool the coding agent is allowed to call."""
+    registry = ToolRegistry()
+    for schema, handler in DEFAULT_TOOLS:
+        registry.register(schema, handler)
+    return registry

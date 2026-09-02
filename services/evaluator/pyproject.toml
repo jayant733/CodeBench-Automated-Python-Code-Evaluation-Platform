@@ -16,6 +16,7 @@ dependencies = [
   "sqlalchemy>=2.0,<3",
   "alembic>=1.13,<2",
   "asyncpg>=0.29,<1",
+  "aiosqlite>=0.20,<1",
   "psycopg2-binary>=2.9,<3",
   "mlflow>=2.10,<3",
   "structlog>=24.1,<25",
