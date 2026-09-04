@@ -2,11 +2,40 @@ from __future__ import annotations
 
 import logging
 import os
+import socket
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 import mlflow
 
 logger = logging.getLogger(__name__)
+
+REACHABILITY_TIMEOUT_SECONDS = 1.0
+
+
+def tracking_enabled(uri: str) -> bool:
+    """Cheap pre-flight check.
+
+    The MLflow client retries with backoff on connection failures, which can stall
+    an agent run for minutes. A short TCP probe keeps an unreachable tracker from
+    blocking the orchestrator.
+    """
+    if os.getenv("MLFLOW_DISABLED", "").lower() in {"1", "true", "yes"}:
+        return False
+
+    parsed = urlparse(uri)
+    if parsed.scheme not in {"http", "https"}:
+        # Local file or database stores do not need a reachable socket.
+        return True
+
+    host = parsed.hostname or "localhost"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        with socket.create_connection((host, port), timeout=REACHABILITY_TIMEOUT_SECONDS):
+            return True
+    except OSError:
+        logger.info(f"MLflow tracker at {uri} is unreachable; skipping experiment tracking.")
+        return False
 
 class ExperimentTracker(Protocol):
     def create_experiment(self, name: str) -> str: ...
@@ -21,10 +50,15 @@ class ExperimentTracker(Protocol):
 class MLflowTracker:
     def __init__(self, tracking_uri: str | None = None):
         uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-        mlflow.set_tracking_uri(uri)
+        self.uri = uri
+        self.enabled = tracking_enabled(uri)
+        if self.enabled:
+            mlflow.set_tracking_uri(uri)
         self.active_run = None
 
     def create_experiment(self, name: str) -> str:
+        if not self.enabled:
+            return ""
         try:
             exp = mlflow.get_experiment_by_name(name)
             if exp:
@@ -36,7 +70,7 @@ class MLflowTracker:
 
     def start_run(self, experiment_id: str, run_name: str | None = None) -> Any:
         try:
-            if not experiment_id:
+            if not self.enabled or not experiment_id:
                 return None
             self.active_run = mlflow.start_run(experiment_id=experiment_id, run_name=run_name)
             return self.active_run

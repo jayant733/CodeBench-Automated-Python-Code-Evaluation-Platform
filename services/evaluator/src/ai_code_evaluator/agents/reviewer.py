@@ -27,11 +27,27 @@ class ReviewAgent(BaseAgent):
     async def invoke(self, context: dict[str, Any]) -> AgentResponse:
         task: TaskDefinition = context["task"]
         source_code: str = context["source_code"]
-        
+        report = context.get("report")
+
         prompt = (
             f"Task: {task.title}\n"
             f"Instructions: {task.instructions}\n\n"
             f"Submission:\n```python\n{source_code}\n```\n\n"
+        )
+
+        # Review against sandbox evidence rather than reading the code blind.
+        if report is not None:
+            failing = [
+                test.name for test in report.visible_tests if test.status != "passed"
+            ]
+            prompt += (
+                f"Sandbox result: score {report.score}/100. {report.summary}\n"
+                f"Failing visible cases: {', '.join(failing) if failing else 'none'}\n"
+                f"Hidden cases: {report.hidden_test_summary.passed} passed, "
+                f"{report.hidden_test_summary.failed} failed.\n\n"
+            )
+
+        prompt += (
             "Please review the code and output a structured ReviewVerdict. "
             "If the code perfectly solves the task, set `approved` to true."
         )

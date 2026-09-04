@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
-from ai_code_evaluator.providers import ModelProvider
 from ai_code_evaluator.models import TaskDefinition
+from ai_code_evaluator.providers import ModelProvider
+
 from .base import BaseAgent
-from .models import AgentConfig, AgentMessage, AgentResponse, CodingPlan, ReviewVerdict, ToolCallRequest
+from .models import AgentConfig, AgentMessage, AgentResponse, CodingPlan, ReviewVerdict
 
 
 class CodingAgent(BaseAgent):
@@ -59,9 +59,21 @@ class CodingAgent(BaseAgent):
             messages=self.memory.messages,
             tools=tool_schemas if tool_schemas else None,
         )
-        
-        # In a real tool-calling loop, if the agent returns tool calls, we'd execute them
-        # and feed the results back. The Orchestrator manages this loop.
-        # Here we just return the response and let the Orchestrator handle tool execution.
-        
+        self._remember(response)
         return response
+
+    async def follow_up(self, tool_schemas: list[dict[str, Any]] | None = None) -> AgentResponse:
+        """Continue after the orchestrator appended tool results to memory."""
+        response = await self._call_llm(messages=self.memory.messages, tools=tool_schemas)
+        self._remember(response)
+        return response
+
+    def _remember(self, response: AgentResponse) -> None:
+        """Keep the assistant turn in memory so tool results have something to attach to."""
+        self.memory.append(
+            AgentMessage(
+                role="assistant",
+                content=response.content,
+                tool_calls=response.tool_calls,
+            )
+        )

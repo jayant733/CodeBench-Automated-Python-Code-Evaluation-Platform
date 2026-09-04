@@ -69,7 +69,8 @@ async def test_coding_agent(config: AgentConfig, provider: MockProvider, dummy_t
     agent = CodingAgent(config, provider)
     response = await agent.invoke({"task": dummy_task})
     
-    assert len(agent.memory.messages) == 2
+    # system prompt, the task prompt, then the assistant turn the coder produced
+    assert [msg.role for msg in agent.memory.messages] == ["system", "user", "assistant"]
     assert "def do_thing():" in agent.memory.messages[1].content
     
     # Test iteration > 1
@@ -77,8 +78,14 @@ async def test_coding_agent(config: AgentConfig, provider: MockProvider, dummy_t
         "task": dummy_task,
         "test_summary": "Failed 1 test",
     })
-    assert len(agent.memory.messages) == 3
-    assert "Failed 1 test" in agent.memory.messages[2].content
+    assert [msg.role for msg in agent.memory.messages] == [
+        "system",
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+    assert "Failed 1 test" in agent.memory.messages[3].content
 
 
 @pytest.mark.asyncio
