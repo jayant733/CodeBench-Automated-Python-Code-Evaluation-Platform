@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ai_code_evaluator.api import create_app
@@ -124,7 +125,12 @@ def test_docker_unavailable_returns_actionable_503(task_loader: TaskLoader) -> N
     assert "Start Docker" in response.json()["error"]["message"]
 
 
-def test_health_reports_runner_state(task_loader: TaskLoader) -> None:
+def test_health_reports_runner_state(
+    task_loader: TaskLoader, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Pin the tracker to a closed port so the result does not depend on what is running locally.
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:1")
+
     with client(task_loader, ApiRunner(unavailable=True)) as api:
         response = api.get("/health")
 

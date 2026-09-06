@@ -3,6 +3,12 @@
  * Do not edit directly; run `npm run contracts:generate`.
  */
 
+export interface AgentRunRequest {
+  max_iterations?: number;
+  require_security?: boolean;
+  task_id: string;
+}
+
 export interface EvaluationReport {
   evaluation_id: string;
   feedback: FeedbackItem[];

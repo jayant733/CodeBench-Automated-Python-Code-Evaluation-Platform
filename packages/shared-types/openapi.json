@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "AgentRunRequest": {
+        "additionalProperties": false,
+        "description": "Request body for launching an orchestrated agent run.",
+        "properties": {
+          "max_iterations": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Iterations",
+            "type": "integer"
+          },
+          "require_security": {
+            "default": true,
+            "title": "Require Security",
+            "type": "boolean"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "title": "AgentRunRequest",
+        "type": "object"
+      },
       "EvaluationReport": {
         "properties": {
           "evaluation_id": {
@@ -525,6 +554,45 @@
           }
         },
         "summary": "Get Agent Sessions"
+      },
+      "post": {
+        "description": "Launch an orchestrated run in the background and return its session id.",
+        "operationId": "start_agent_session_api_agent_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Start Agent Session Api Agent Sessions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Agent Session"
       }
     },
     "/api/agent/sessions/{session_id}": {
@@ -627,6 +695,47 @@
           }
         },
         "summary": "List Experiments"
+      }
+    },
+    "/api/experiments/{experiment_id}": {
+      "get": {
+        "operationId": "get_experiment_details_api_experiments__experiment_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "experiment_id",
+            "required": true,
+            "schema": {
+              "title": "Experiment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Experiment Details Api Experiments  Experiment Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Experiment Details"
       }
     },
     "/api/tasks": {
