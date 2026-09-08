@@ -1,119 +1,112 @@
+"""Run the orchestrated agent across every benchmark task and record real results."""
+
+import argparse
 import asyncio
 import json
 import logging
 import sys
+import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Sequence
-from pydantic import BaseModel
 
 sys.path.append(str(Path(__file__).parent.parent / "services" / "evaluator" / "src"))
 
 from ai_code_evaluator.agents.models import AgentConfig
 from ai_code_evaluator.orchestrator import AgentOrchestrator, OrchestratorConfig
-from ai_code_evaluator.providers import ModelProvider, GenerateResult, StructuredResult, TokenUsage
+from ai_code_evaluator.providers import resolve_provider
 from ai_code_evaluator.service import EvaluationService
 from ai_code_evaluator.tasks import TaskLoader
-from ai_code_evaluator.tools.registry import ToolRegistry
+from ai_code_evaluator.tools.definitions import build_default_registry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class MockBenchmarkProvider(ModelProvider):
-    async def generate(
-        self,
-        messages: Sequence[dict[str, Any]],
-        model: str,
-        temperature: float = 0.0,
-        max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-    ) -> GenerateResult:
-        return GenerateResult(
-            content="Mocked benchmark response",
-            tool_calls=None,
-            usage=TokenUsage(),
-            model=model,
-            finish_reason="stop",
-        )
 
-    async def structured_generate(
-        self,
-        messages: Sequence[dict[str, Any]],
-        response_format: type[BaseModel],
-        model: str,
-        temperature: float = 0.0,
-        max_tokens: int | None = None,
-    ) -> StructuredResult:
-        # Generate instance of response_format using default values if possible
-        try:
-            parsed = response_format()
-        except Exception:
-            # Fallback for models like CodingPlan or ReviewVerdict
-            if hasattr(response_format, "model_construct"):
-                parsed = response_format.model_construct(
-                    summary="Mocked plan",
-                    steps=[],
-                    approved=True,
-                    safe=True,
-                    risk_level="none",
-                )
-            else:
-                parsed = None
-        return StructuredResult(
-            parsed=parsed,
-            usage=TokenUsage(),
-            model=model,
-        )
-
-async def run_agent() -> None:
+async def run_agent(max_iterations: int, require_security: bool, output: Path) -> None:
     loader = TaskLoader()
-    tasks = loader.list_public()
-    
-    provider = MockBenchmarkProvider()
     eval_service = EvaluationService()
-    registry = ToolRegistry()
-    
-    orchestrator = AgentOrchestrator(
-        provider=provider,
-        tool_registry=registry,
-        eval_service=eval_service,
-        config=OrchestratorConfig(max_iterations=1, require_security=False),
-        agent_config=AgentConfig()
-    )
+    provider, provider_name = resolve_provider(loader)
+    logger.info(f"Using '{provider_name}' provider with up to {max_iterations} iteration(s)")
 
     results = []
-    workspace = Path("/tmp/mock_workspace")
-    workspace.mkdir(parents=True, exist_ok=True)
-    
-    for summary in tasks:
+
+    for summary in loader.list_public():
         task = loader.get(summary.id)
         session_id = str(uuid.uuid4())
-        logger.info(f"Running agent evaluation for task {task.id}")
-        
-        try:
-            report = await orchestrator.run(task, session_id, workspace)
-            
-            results.append({
-                "task_id": task.id,
-                "score": report.score,
-                "passed": report.passed,
-                "runtime_ms": report.runtime_ms,
-                "iterations": 1,
-            })
-            logger.info(f"Task {task.id}: Score {report.score}, Passed: {report.passed}")
-        except Exception as e:
-            logger.error(f"Failed to evaluate task {task.id}: {e}")
-            results.append({
-                "task_id": task.id,
-                "score": 0,
-                "passed": False,
-                "runtime_ms": 0,
-                "error": str(e)
-            })
+        logger.info(f"Running agent session {session_id} for task {task.id}")
 
-    output_file = Path("benchmarks/agent_results.json")
-    output_file.write_text(json.dumps(results, indent=2))
-    logger.info(f"Saved {len(results)} results to {output_file}")
+        # A fresh orchestrator per task keeps agent memory from leaking across tasks.
+        orchestrator = AgentOrchestrator(
+            provider=provider,
+            tool_registry=build_default_registry(),
+            eval_service=eval_service,
+            task_loader=loader,
+            config=OrchestratorConfig(
+                max_iterations=max_iterations,
+                require_security=require_security,
+            ),
+            agent_config=AgentConfig(provider=provider_name),
+        )
+
+        with tempfile.TemporaryDirectory(prefix=f"agent-{task.id}-") as workspace:
+            try:
+                report = await orchestrator.run(task, session_id, Path(workspace))
+                results.append(
+                    {
+                        "task_id": task.id,
+                        "session_id": session_id,
+                        "score": report.score,
+                        "passed": report.passed,
+                        "runtime_ms": report.runtime_ms,
+                        "iterations": len(orchestrator.last_iterations),
+                        "iteration_scores": [
+                            record.score for record in orchestrator.last_iterations
+                        ],
+                    }
+                )
+                logger.info(f"Task {task.id}: score {report.score}, passed {report.passed}")
+            except Exception as exc:
+                logger.error(f"Failed to evaluate task {task.id}: {exc}")
+                results.append(
+                    {
+                        "task_id": task.id,
+                        "session_id": session_id,
+                        "score": 0,
+                        "passed": False,
+                        "runtime_ms": 0,
+                        "iterations": 0,
+                        "error": str(exc),
+                    }
+                )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    logger.info(f"Saved {len(results)} results to {output}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=3,
+        help="Attempt budget per task before the run is reported as-is.",
+    )
+    parser.add_argument(
+        "--no-security",
+        action="store_true",
+        help="Skip the security agent pass.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path(__file__).parent / "agent_results.json",
+        help="Where to write the benchmark summary.",
+    )
+    args = parser.parse_args()
+
+    asyncio.run(run_agent(args.max_iterations, not args.no_security, args.output))
+
 
 if __name__ == "__main__":
-    asyncio.run(run_agent())
+    main()

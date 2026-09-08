@@ -2,7 +2,7 @@
 
 import type { EvaluationReport, PublicTask, TaskSummary, TestResult } from "@aices/shared-types";
 import { useCallback, useEffect, useState } from "react";
-import { EvaluatorApiError, evaluate, getTask, listTasks } from "../lib/api";
+import { EvaluatorApiError, evaluate, getTask, listTasks, startAgentSession } from "../lib/api";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -146,12 +146,15 @@ export function EvaluationWorkspace() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [taskLoading, setTaskLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [launching, setLaunching] = useState(false);
+  const [launchedSessionId, setLaunchedSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const selectTask = useCallback(async (taskId: string) => {
     setTaskLoading(true);
     setError(null);
     setReport(null);
+    setLaunchedSessionId(null);
     try {
       const task = await getTask(taskId);
       setSelectedTask(task);
@@ -206,6 +209,25 @@ export function EvaluationWorkspace() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function launchAgentRun() {
+    if (!selectedTask) return;
+    setLaunching(true);
+    setError(null);
+    setLaunchedSessionId(null);
+    try {
+      const accepted = await startAgentSession(selectedTask.id);
+      setLaunchedSessionId(accepted.session_id);
+    } catch (caught) {
+      setError(
+        caught instanceof EvaluatorApiError
+          ? caught.message
+          : "The agent run could not be started.",
+      );
+    } finally {
+      setLaunching(false);
     }
   }
 
@@ -337,6 +359,14 @@ export function EvaluationWorkspace() {
                   <span>Python 3.12 · Docker isolated</span>
                   <button
                     type="button"
+                    className="quiet-button"
+                    onClick={() => void launchAgentRun()}
+                    disabled={launching || taskLoading || submitting}
+                  >
+                    {launching ? "Starting agent…" : "Run agent on this task"}
+                  </button>
+                  <button
+                    type="button"
                     className="run-button"
                     onClick={() => void submit()}
                     disabled={submitting || taskLoading || !sourceCode.trim()}
@@ -346,6 +376,13 @@ export function EvaluationWorkspace() {
                   </button>
                 </div>
               </div>
+
+              {launchedSessionId ? (
+                <p className="agent-launch-note">
+                  Agent run started for <strong>{selectedTask.title}</strong>.{" "}
+                  <a href={`/sessions/${launchedSessionId}`}>Watch it iterate →</a>
+                </p>
+              ) : null}
             </>
           ) : (
             <div className="challenge-loading">

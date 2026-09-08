@@ -6,6 +6,21 @@ import { formatStamp } from "../../lib/format";
 interface Experiment {
   id: string;
   name: string;
+  run_count: number;
+  created_at: string | null;
+  latest_run: ExperimentRun | null;
+}
+
+interface ExperimentRun {
+  id: string;
+  session_id: string;
+  model: string;
+  provider: string;
+  status: string;
+  metrics: {
+    final_score?: number;
+    iterations_used?: number;
+  };
   created_at: string | null;
 }
 
@@ -19,25 +34,33 @@ export default function ExperimentsPage() {
 
   useEffect(() => {
     let active = true;
-    fetch(`${EVALUATOR_URL}/api/experiments`)
-      .then(async (res) => {
+
+    const loadExperiments = async () => {
+      try {
+        const res = await fetch(`${EVALUATOR_URL}/api/experiments`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error(`Evaluator responded ${res.status}`);
-        return (await res.json()) as Experiment[];
-      })
-      .then((data) => {
+        const data = (await res.json()) as Experiment[];
         if (!active) return;
         setExperiments(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => {
+        setError(null);
+      } catch {
         if (!active) return;
         setError(
           "Experiment records could not be loaded. Start the evaluator service and refresh.",
         );
-        setLoading(false);
-      });
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void loadExperiments();
+    const interval = window.setInterval(() => void loadExperiments(), 3000);
+
     return () => {
       active = false;
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -106,7 +129,9 @@ export default function ExperimentsPage() {
                 <thead>
                   <tr>
                     <th scope="col">Experiment</th>
-                    <th scope="col">Name</th>
+                    <th scope="col">Runs</th>
+                    <th scope="col">Latest run</th>
+                    <th scope="col">Score</th>
                     <th scope="col">Created</th>
                     <th scope="col">Telemetry</th>
                   </tr>
@@ -114,9 +139,33 @@ export default function ExperimentsPage() {
                 <tbody>
                   {experiments.map((experiment) => (
                     <tr key={experiment.id}>
-                      <td className="mono">{experiment.id}</td>
                       <td>
                         <strong>{experiment.name}</strong>
+                        <div className="mono">{experiment.id}</div>
+                      </td>
+                      <td>{experiment.run_count}</td>
+                      <td>
+                        {experiment.latest_run ? (
+                          <>
+                            <a
+                              className="out-link"
+                              href={`/sessions/${experiment.latest_run.session_id}`}
+                            >
+                              {experiment.latest_run.status}
+                            </a>
+                            <div className="muted">
+                              {experiment.latest_run.provider} / {experiment.latest_run.model}
+                            </div>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        {experiment.latest_run?.metrics.final_score ?? "—"}
+                        {experiment.latest_run?.metrics.iterations_used
+                          ? ` / ${experiment.latest_run.metrics.iterations_used} iter.`
+                          : ""}
                       </td>
                       <td className="stamp">{formatStamp(experiment.created_at)}</td>
                       <td>

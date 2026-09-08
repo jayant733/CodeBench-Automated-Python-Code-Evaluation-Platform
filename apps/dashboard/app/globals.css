@@ -553,6 +553,23 @@ textarea:focus-visible {
   cursor: wait;
 }
 
+.editor-actions .quiet-button {
+  margin-left: auto;
+  color: #bdc5bd;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.editor-actions .quiet-button:disabled {
+  color: #6d736d;
+  cursor: wait;
+}
+
+.agent-launch-note {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
 .challenge-loading {
   min-height: 500px;
   display: grid;

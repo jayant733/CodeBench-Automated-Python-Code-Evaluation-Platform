@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatusPill } from "../../../components/status-pill";
 import { formatDuration } from "../../../lib/format";
 
@@ -19,18 +19,34 @@ interface SecurityVerdict {
   findings: SecurityFinding[] | null;
 }
 
+interface ReviewIssue {
+  severity: string;
+  location: string;
+  description: string;
+  fix_hint: string | null;
+}
+
+interface ReviewVerdict {
+  approved?: boolean;
+  quality_score?: number;
+  issues?: ReviewIssue[] | null;
+  suggestions?: string[] | null;
+}
+
 interface ToolCall {
   id: string | null;
   tool_name: string;
   arguments: Record<string, unknown> | null;
   result: unknown;
+  error: string | null;
   duration_ms: number | null;
 }
 
 interface Iteration {
   iteration_number: number;
   coding_duration_ms: number | null;
-  review_verdict: string | { approved?: boolean } | null;
+  evaluation_id: string | null;
+  review_verdict: string | ReviewVerdict | null;
   security_verdict: SecurityVerdict | null;
   tool_calls: ToolCall[] | null;
 }
@@ -42,17 +58,24 @@ interface SessionDetails {
   final_score: number | null;
   iterations_used: number;
   total_duration_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
   iterations: Iteration[] | null;
 }
 
 const EVALUATOR_URL = process.env.NEXT_PUBLIC_EVALUATOR_URL ?? "http://localhost:8000";
+const POLL_INTERVAL_MS = 2000;
 
-/** The orchestrator persists this verdict as a "PASS"/"FAIL" string, older rows as an object. */
+/** The orchestrator persists the reviewer verdict as an object, older rows as a string. */
 function reviewLabel(verdict: Iteration["review_verdict"]): string | null {
   if (verdict == null) return null;
   if (typeof verdict === "string") return verdict;
   if (typeof verdict.approved === "boolean") return verdict.approved ? "PASS" : "FAIL";
   return null;
+}
+
+function reviewDetail(verdict: Iteration["review_verdict"]): ReviewVerdict | null {
+  return verdict != null && typeof verdict === "object" ? verdict : null;
 }
 
 function ShellMessage({ children }: { children: React.ReactNode }) {
@@ -84,27 +107,53 @@ export default function SessionDetailsPage() {
   const [session, setSession] = useState<SessionDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      const res = await fetch(
+        `${EVALUATOR_URL}/api/agent/sessions/${encodeURIComponent(id ?? "")}`,
+        {
+          signal,
+          cache: "no-store",
+        },
+      );
+      if (!res.ok) throw new Error(`Evaluator responded ${res.status}`);
+      return (await res.json()) as SessionDetails;
+    },
+    [id],
+  );
+
   useEffect(() => {
     if (!id) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     let active = true;
-    fetch(`${EVALUATOR_URL}/api/agent/sessions/${encodeURIComponent(id)}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`Evaluator responded ${res.status}`);
-        return (await res.json()) as SessionDetails;
-      })
-      .then((data) => {
+
+    async function poll() {
+      let current: SessionDetails | null = null;
+      try {
+        current = await load(controller.signal);
         if (!active) return;
-        setSession(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!active) return;
-        setLoading(false);
-      });
+        setSession(current);
+      } catch (caught) {
+        if (!active || (caught as Error).name === "AbortError") return;
+      } finally {
+        if (active) {
+          setLoading(false);
+          // Keep polling while the orchestrator is still working on this session.
+          if (current == null || current.status === "in_progress") {
+            timer = setTimeout(poll, POLL_INTERVAL_MS);
+          }
+        }
+      }
+    }
+
+    void poll();
     return () => {
       active = false;
+      controller.abort();
+      if (timer) clearTimeout(timer);
     };
-  }, [id]);
+  }, [id, load]);
 
   if (loading) {
     return (
@@ -130,6 +179,7 @@ export default function SessionDetailsPage() {
   }
 
   const iterations = session.iterations ?? [];
+  const totalTokens = (session.prompt_tokens ?? 0) + (session.completion_tokens ?? 0);
 
   return (
     <>
@@ -149,7 +199,7 @@ export default function SessionDetailsPage() {
           </div>
           <div>
             <dt>Iterations</dt>
-            <dd>{session.iterations_used}</dd>
+            <dd>{iterations.length || session.iterations_used}</dd>
           </div>
           <div>
             <dt>Duration</dt>
@@ -179,11 +229,15 @@ export default function SessionDetailsPage() {
               </div>
               <div className="stat">
                 <span>Iterations used</span>
-                <strong>{session.iterations_used}</strong>
+                <strong>{iterations.length || session.iterations_used}</strong>
               </div>
               <div className="stat">
                 <span>Total duration</span>
                 <strong>{formatDuration(session.total_duration_ms)}</strong>
+              </div>
+              <div className="stat">
+                <span>Tokens</span>
+                <strong>{totalTokens ? totalTokens.toLocaleString() : "—"}</strong>
               </div>
             </dl>
           </div>
@@ -192,20 +246,31 @@ export default function SessionDetailsPage() {
             <div className="panel-bar">
               <h2>Iteration timeline</h2>
               <span className="muted">
-                {iterations.length} {iterations.length === 1 ? "iteration" : "iterations"}
+                {session.status === "in_progress"
+                  ? `${iterations.length} so far · running`
+                  : `${iterations.length} ${iterations.length === 1 ? "iteration" : "iterations"}`}
               </span>
             </div>
 
             {iterations.length === 0 ? (
               <div className="console-empty">
-                <strong>No iterations recorded.</strong>
-                <p>This session ended before the agent completed a coding pass.</p>
+                <strong>
+                  {session.status === "in_progress"
+                    ? "Waiting for the first iteration…"
+                    : "No iterations recorded."}
+                </strong>
+                <p>
+                  {session.status === "in_progress"
+                    ? "This view refreshes automatically as the orchestrator reports progress."
+                    : "This session ended before the agent completed a coding pass."}
+                </p>
               </div>
             ) : (
               <ol className="timeline">
                 {iterations.map((iteration) => {
                   const toolCalls = iteration.tool_calls ?? [];
                   const review = reviewLabel(iteration.review_verdict);
+                  const reviewInfo = reviewDetail(iteration.review_verdict);
                   const security = iteration.security_verdict;
 
                   return (
@@ -234,6 +299,9 @@ export default function SessionDetailsPage() {
                                 >
                                   <b>{call.tool_name}</b>
                                   <code>{JSON.stringify(call.arguments ?? {})}</code>
+                                  {call.error ? (
+                                    <span className="verdict-row__risk">{call.error}</span>
+                                  ) : null}
                                   {call.duration_ms == null ? null : (
                                     <span>{formatDuration(call.duration_ms)}</span>
                                   )}
@@ -251,7 +319,27 @@ export default function SessionDetailsPage() {
                                 <i aria-hidden="true" />
                                 {review}
                               </span>
+                              {reviewInfo?.quality_score == null ? null : (
+                                <span className="verdict-row__risk">
+                                  quality {reviewInfo.quality_score}/10
+                                </span>
+                              )}
                             </div>
+                          ) : null}
+
+                          {reviewInfo?.issues?.length ? (
+                            <ul className="findings-list">
+                              {reviewInfo.issues.map((issue) => (
+                                <li
+                                  key={`${issue.severity}:${issue.location}:${issue.description}`}
+                                >
+                                  <b>
+                                    {issue.severity} · {issue.location}
+                                  </b>
+                                  <p>{issue.description}</p>
+                                </li>
+                              ))}
+                            </ul>
                           ) : null}
 
                           {security ? (

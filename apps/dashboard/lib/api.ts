@@ -75,3 +75,18 @@ export function evaluate(taskId: string, sourceCode: string): Promise<Evaluation
     body: JSON.stringify(submission),
   });
 }
+
+export interface AgentRunAccepted {
+  session_id: string;
+  task_id: string;
+  status: string;
+  max_iterations: number;
+}
+
+/** Launches an orchestrated run; the session appears under /sessions while it works. */
+export function startAgentSession(taskId: string, maxIterations = 4): Promise<AgentRunAccepted> {
+  return request<AgentRunAccepted>("/api/agent/sessions", {
+    method: "POST",
+    body: JSON.stringify({ task_id: taskId, max_iterations: maxIterations }),
+  });
+}

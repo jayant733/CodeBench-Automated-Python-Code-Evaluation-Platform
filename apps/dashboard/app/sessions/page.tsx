@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatusPill } from "../../components/status-pill";
 import { formatDuration, formatStamp, shortId } from "../../lib/format";
 
@@ -11,44 +11,64 @@ interface AgentSession {
   status: string;
   final_score: number | null;
   iterations_used: number;
+  iteration_count: number;
   total_duration_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
   created_at: string | null;
 }
 
 const EVALUATOR_URL = process.env.NEXT_PUBLIC_EVALUATOR_URL ?? "http://localhost:8000";
+const POLL_INTERVAL_MS = 3000;
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch(`${EVALUATOR_URL}/api/agent/sessions`, { signal, cache: "no-store" });
+    if (!res.ok) throw new Error(`Evaluator responded ${res.status}`);
+    return (await res.json()) as AgentSession[];
+  }, []);
+
   useEffect(() => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     let active = true;
-    fetch(`${EVALUATOR_URL}/api/agent/sessions`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`Evaluator responded ${res.status}`);
-        return (await res.json()) as AgentSession[];
-      })
-      .then((data) => {
+
+    async function poll() {
+      try {
+        const data = await load(controller.signal);
         if (!active) return;
         setSessions(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!active) return;
+        setError(null);
+      } catch (caught) {
+        if (!active || (caught as Error).name === "AbortError") return;
         setError("Agent history could not be loaded. Start the evaluator service and refresh.");
-        setLoading(false);
-      });
+      } finally {
+        if (active) {
+          setLoading(false);
+          // Keep refreshing so a run launched elsewhere shows up without a reload.
+          timer = setTimeout(poll, POLL_INTERVAL_MS);
+        }
+      }
+    }
+
+    void poll();
     return () => {
       active = false;
+      controller.abort();
+      if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [load]);
 
   const scored = sessions.filter((session) => session.final_score != null);
   const averageScore = scored.length
     ? Math.round(scored.reduce((total, s) => total + (s.final_score ?? 0), 0) / scored.length)
     : null;
   const completed = sessions.filter((session) => session.status === "completed").length;
+  const running = sessions.filter((session) => session.status === "in_progress").length;
 
   return (
     <>
@@ -92,7 +112,13 @@ export default function SessionsPage() {
         <div className="console-panel">
           <div className="panel-bar">
             <h2>Execution log</h2>
-            <span className="muted">{loading ? "Loading…" : `${sessions.length} sessions`}</span>
+            <span className="muted">
+              {loading
+                ? "Loading…"
+                : running > 0
+                  ? `${sessions.length} sessions · ${running} running`
+                  : `${sessions.length} sessions`}
+            </span>
           </div>
 
           {loading ? (
@@ -106,8 +132,8 @@ export default function SessionsPage() {
               </div>
               <strong>No agent sessions yet.</strong>
               <p>
-                Run <code>benchmarks/run_agent.py</code> to record an autonomous attempt, then
-                reload this page.
+                Start a run with <code>POST /api/agent/sessions</code> or{" "}
+                <code>benchmarks/run_agent.py</code>. This page refreshes on its own.
               </p>
             </div>
           ) : (
@@ -158,7 +184,7 @@ export default function SessionsPage() {
                           </span>
                         )}
                       </td>
-                      <td className="num">{session.iterations_used}</td>
+                      <td className="num">{session.iteration_count || session.iterations_used}</td>
                       <td className="num">{formatDuration(session.total_duration_ms)}</td>
                       <td className="stamp">{formatStamp(session.created_at)}</td>
                     </tr>
